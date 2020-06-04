@@ -10,23 +10,23 @@ class Api::V1::BaseController < ApplicationController
 	# after_action :verify_policy_scoped, only: :index
 
 	rescue_from ActiveRecord::RecordNotFound do |exception|
-		render json: { errors: ["Resource not found."] }, status: :not_found
+		render json: { errors: ["Recurso não encontrado"] }, status: :not_found
 	end
 
 	rescue_from ActionController::ParameterMissing do |exception|
-		render json: { errors: ["Missing parameters: #{list_to_comma_string(exception.param)}"] }, status: :bad_request
+		render json: { errors: ["Ausência dos parâmetros: #{list_to_comma_string(exception.param)}"] }, status: :bad_request
 	end
 
 	rescue_from CustomException::Authentication::InvalidCredentials do |exception|
-    render json: { errors: ["Invalid credentials"] }, status: :unauthorized
+    render json: { errors: ["Credenciais inválidas"] }, status: :unauthorized
   end
 
 	rescue_from CustomException::Authentication::Unauthorized do |exception|
-    render json: { errors: ["Unauthorized"] }, status: :unauthorized
+    render json: { errors: ["Não autenticado"] }, status: :unauthorized
   end
 
 	rescue_from Pundit::NotAuthorizedError do |exception|
-		render json: { errors: ["Forbidden"] }, status: :forbidden
+		render json: { errors: ["Não autorizado"] }, status: :forbidden
 	end
 
 	rescue_from ActiveRecord::RecordInvalid do |exception|

@@ -1,12 +1,18 @@
   class Api::V1::UsersController < Api::V1::BaseController
-    before_action :authenticate_user!, except: [:create, :reset_password]
+    before_action :authenticate_user!, except: [:reset_password]
     before_action :load_resource, except: [:create, :reset_password]
 
     # CRUDs
     def create
-      @user = User.create!(sign_up_params)
-      bypass_authenticate(@user)
-      render json: @user
+      @user = User.new(sign_up_params)
+      authorize current_user
+      if current_user.user_permission(@user) 
+        and current_user.enterprise_permission(@user.enterprise_id)
+        @user.save!
+        render json: @user, status: :created
+      else
+        render json: { error: 'Você não tem permissão para criar este registro' }, status: :forbidden
+      end
     end
 
     def update
@@ -43,8 +49,13 @@
     private
 
       def sign_up_params
-        require_parameters([:email, :password])
-        params.permit(:email, :password)
+        if (params[:role] == 'employee' or params[:role] == 2)
+          require_parameters([:email, :password, :name, :phone, :role, :enterprise_id])
+          params.permit(:email, :password, :name, :phone, :role, :enterprise_id)
+        else
+          require_parameters([:email, :password, :name, :phone, :role])
+          params.permit(:email, :password, :name, :phone, :role)
+        end
       end
 
       def update_params
