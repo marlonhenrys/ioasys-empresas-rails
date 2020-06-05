@@ -3,9 +3,9 @@ class UserPolicy < ApplicationPolicy
   def create?
     user.admin? or user.manager?
   end
-  
-  def show?
-    user.id == record.id
+
+  def update?
+    true
   end
 
   class Scope < Scope

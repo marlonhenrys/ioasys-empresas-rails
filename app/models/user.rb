@@ -13,19 +13,13 @@ class User < ApplicationRecord
 
   include Authenticatable
 
-  def user_permission(user)
-    if self.admin?
+  def check_permission(user)
+    if self.id == user.id 
+      true
+    elsif self.admin?
       user.admin? or user.manager?
     elsif self.manager?
-      user.employee?
-    end
-  end
-
-  def enterprise_permission(enterprise_id)
-    if self.admin?
-      true
-    elsif self.manager?
-      self.enterprises.any? { |e| e.id == enterprise_id }
+      user.employee? && self.enterprises.any? { |e| e.id == user.enterprise_id }
     end
   end
 

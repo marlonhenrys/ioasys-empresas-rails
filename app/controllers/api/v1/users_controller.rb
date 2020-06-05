@@ -6,8 +6,7 @@
     def create
       @user = User.new(sign_up_params)
       authorize current_user
-      if current_user.user_permission(@user) 
-        and current_user.enterprise_permission(@user.enterprise_id)
+      if current_user.check_permission(@user)
         @user.save!
         render json: @user, status: :created
       else
@@ -16,9 +15,13 @@
     end
 
     def update
-      authorize @user
-      @user.update!(update_params)
-      render json: @user
+      authorize current_user
+      if current_user.check_permission(@user)
+        @user.update!(update_params)
+        render json: @user
+      else
+        render json: { error: 'Você não tem permissão para alterar este registro' }, status: :forbidden
+      end
     end
 
     def show
@@ -59,7 +62,7 @@
       end
 
       def update_params
-        params.permit(:email)
+        params.permit(:email, :phone, :name)
       end
 
       def password_params

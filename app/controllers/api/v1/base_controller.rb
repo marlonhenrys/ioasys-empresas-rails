@@ -22,11 +22,11 @@ class Api::V1::BaseController < ApplicationController
   end
 
 	rescue_from CustomException::Authentication::Unauthorized do |exception|
-    render json: { errors: ["Não autenticado"] }, status: :unauthorized
+    render json: { errors: ["É necessário estar autenticado"] }, status: :unauthorized
   end
 
 	rescue_from Pundit::NotAuthorizedError do |exception|
-		render json: { errors: ["Não autorizado"] }, status: :forbidden
+		render json: { errors: ["Você não tem autorização para acessar este recurso"] }, status: :forbidden
 	end
 
 	rescue_from ActiveRecord::RecordInvalid do |exception|
