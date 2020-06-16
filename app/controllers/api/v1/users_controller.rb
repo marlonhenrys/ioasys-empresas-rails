@@ -1,55 +1,103 @@
   class Api::V1::UsersController < Api::V1::BaseController
     before_action :authenticate_user!, except: [:reset_password]
-    before_action :load_resource, except: [:create, :reset_password]
+    before_action :load_resource, except: [:index, :create, :update_status, :reset_password]
 
-    # CRUDs
-    def create
-      @user = User.new(sign_up_params)
+    def index
       authorize current_user
-      if current_user.check_permission(@user)
+      params[:page] ||= 1
+      if current_user.admin?
+          @users = User.all
+            .where(query_conditions)
+            .page(params[:page])
+            .per(10)
+      elsif current_user.manager?
+        enterprises = []
+        if params.has_key?(:enterprise_id) && !params[:enterprise_id].nil?
+          if current_user.enterprises.where(id: params[:enterprise_id]).any?
+            enterprises << params[:enterprise_id]
+          else
+            render json: { error: 'Você não tem permissão para acessar estes registros' }, status: :unprocessable_entity
+          end
+        else
+          enterprises << current_user.enterprises.pluck(:id)
+        end
+        @users = User.employee
+          .where(enterprise_id: enterprises)
+          .page(params[:page])
+          .per(10)
+      elsif current_user.employee?
+        @users = User.employee
+          .where(enterprise_id: current_user.enterprise_id)
+          .page(params[:page])
+          .per(10)
+      end
+    end
+
+    def create
+      authorize current_user
+      @user = User.new(sign_up_params)
+      if current_user.master? @user
         @user.save!
-        render json: @user, status: :created
+        render status: :created
       else
         render json: { error: 'Você não tem permissão para criar este registro' }, status: :forbidden
       end
     end
 
+    def show
+      authorize current_user
+      unless current_user.have_access? @user
+        render json: { error: 'Você não tem permissão para exibir este registro' }, status: :forbidden
+      end
+    end
+
     def update
       authorize current_user
-      if current_user.check_permission(@user)
+      if current_user.have_control? @user
         @user.update!(update_params)
-        render json: @user
       else
         render json: { error: 'Você não tem permissão para alterar este registro' }, status: :forbidden
       end
     end
 
-    def show
-      authorize @user
-      render json: @user
+    def update_status
+      authorize current_user
+      require_parameters([:users, :status])
+      users = User.where(id: params[:users])
+      users.each do |user| 
+        user[:status] = params[:status]
+        user.save!
+      end
     end
 
-    # Custom actions
+    def destroy
+      authorize current_user
+      if current_user.master? @user
+        @user.destroy!
+      else
+        render json: { error: 'Você não tem permissão para excluir este registro' }, status: :forbidden
+      end
+    end
+
     def password
-      authorize @user
-      @user.update_with_password!(password_params)
+      if current_user.self? @user
+        @user.update_with_password!(password_params)
+      else
+        render json: { error: 'Você não tem permissão para alterar este registro' }, status: :forbidden
+      end
     end
 
-    def reset_password
-      params.require(:email)
-      User.reset_password(params[:email])
-      # No Content
-    end
-
-    def register_device
-      require_parameters([:device_id, :device_os])
-      authorize @user
-      current_user.register_device(request.headers["client"], params[:device_id], params[:device_os])
-      # No Content
-    end
-
-    ###
     private
+
+      def query_conditions
+        conditions = {}
+        if params[:role] && !params[:role].nil?
+          conditions[:role] = params[:role]
+        end
+        if params[:enterpriseId] && !params[:enterpriseId].nil?
+          conditions[:enterprise_id] = params[:enterpriseId]
+        end
+      end
 
       def sign_up_params
         if (params[:role] == 'employee' or params[:role] == 2)

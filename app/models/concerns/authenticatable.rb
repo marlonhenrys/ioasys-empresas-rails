@@ -70,8 +70,10 @@ module Authenticatable
 			resource = find_by_auth_values(auth_value)
 			unless resource.nil?
 				if resource.valid_password? password
-					resource.created_auth = resource.authentications.create!(metadata: metadata)
-					return resource
+					if resource.active?
+						resource.created_auth = resource.authentications.create!(metadata: metadata)
+						return resource
+					end
 				end
 			end
 			return nil
