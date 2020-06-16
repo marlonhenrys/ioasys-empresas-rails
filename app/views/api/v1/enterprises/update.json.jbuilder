@@ -1,0 +1,1 @@
+json.partial! 'enterprise', locals: { enterprise: @enterprise }

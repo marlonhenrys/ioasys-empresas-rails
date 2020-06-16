@@ -1,4 +1,4 @@
-class UserPolicy < ApplicationPolicy
+class EnterprisePolicy < ApplicationPolicy
 
   def index?
     user.active?
@@ -11,13 +11,9 @@ class UserPolicy < ApplicationPolicy
   def show?
     user.active?
   end
-
-  def update?
-    user.active?
-  end
   
-  def update_status?
-    user.admin? && user.active?
+  def update?
+    (user.admin? or user.manager?) && user.active?
   end
   
   def destroy?

@@ -3,12 +3,13 @@ Rails.application.routes.draw do
   namespace :api, defaults: {format: 'json'} do
     namespace :v1 do
       # models auth
-      resources :users, except: [:edit, :new, :index, :destroy], shallow: true do
+      resources :users, except: [:edit, :new], shallow: true do
         member do
           put :password
           put :register_device
         end
         collection do
+          patch 'status' => 'users#update_status'
           namespace :auth do
             put 'omniauth/:provider' => 'omniauth#all'
             patch 'omniauth/:provider' => 'omniauth#all'
@@ -18,7 +19,7 @@ Rails.application.routes.draw do
           post :reset_password
         end
       end
-
+      resources :enterprises, except: [:edit, :new]
     end
   end
 
